@@ -1,12 +1,6 @@
 trigger:
 - '*'
 
-pool:
-  name: default 
-  vmImage: 'ubuntu-20.04'
-  demands:
-  - npm
-
 variables:
   buildConfiguration: 'Release'
 
@@ -17,7 +11,6 @@ stages:
   - job: 'Build'
     displayName: 'Build job'
     pool:
-      name: default
       vmImage: 'ubuntu-20.04'
       demands:
       - npm
@@ -32,31 +25,10 @@ stages:
       inputs:
         version: '$(dotnetSdkVersion)'
 
-<<<<<<< HEAD
     - task: Npm@1
       displayName: 'Run npm install'
       inputs:
         verbose: false
-=======
-- task: gulp@1
-  displayName: 'Run gulp tasks'
-<<<<<<< HEAD
-=======
-  inputs:
-   gulpFile: 'gulpfile.js'
-   gulpjs: node_modules/gulp/bin/gulp.js
-
-- script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
-  displayName: 'Write build info'
-  workingDirectory: $(wwwrootDir)
-
-- task: DotNetCoreCLI@2
-  displayName: 'Restore project dependencies'
->>>>>>> 3f5930b388c3defcbd5f48742a9f1f5b2ca0d71a
-  inputs:
-   gulpFile: 'gulpfile.js'
-   gulpjs: node_modules/gulp/bin/gulp.js
->>>>>>> 3f5930b388c3defcbd5f48742a9f1f5b2ca0d71a
 
     - script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
       displayName: 'Compile Sass assets'
@@ -92,3 +64,26 @@ stages:
 
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
+
+- stage: 'Deploy'
+  displayName: 'Deploy the web application'
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-20.04'
+    environment: dev
+    variables:
+    - group: Release
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'
+              appName: '$(WebAppName)'
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'

@@ -75,6 +75,7 @@ stages:
   jobs:
   - deployment: Deploy
     pool:
+      name: default
       vmImage: 'ubuntu-20.04'
     environment: dev
     variables:

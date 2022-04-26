@@ -1,6 +1,12 @@
 trigger:
 - '*'
 
+pool:
+  name: default 
+  vmImage: 'ubuntu-20.04'
+  demands:
+  - npm
+
 variables:
   buildConfiguration: 'Release'
 
@@ -26,10 +32,18 @@ stages:
       inputs:
         version: '$(dotnetSdkVersion)'
 
+<<<<<<< HEAD
     - task: Npm@1
       displayName: 'Run npm install'
       inputs:
         verbose: false
+=======
+- task: gulp@1
+  displayName: 'Run gulp tasks'
+  inputs:
+   gulpFile: 'gulpfile.js'
+   gulpjs: node_modules/gulp/bin/gulp.js
+>>>>>>> 3f5930b388c3defcbd5f48742a9f1f5b2ca0d71a
 
     - script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
       displayName: 'Compile Sass assets'

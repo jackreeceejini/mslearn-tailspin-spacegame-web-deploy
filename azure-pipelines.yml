@@ -11,7 +11,8 @@ stages:
   jobs: 
   - job: 'Build'
     displayName: 'Build job'
-    pool:
+    pool: 
+      name: default
       vmImage: 'ubuntu-20.04'
       demands:
       - npm
@@ -36,6 +37,9 @@ stages:
 
     - task: gulp@1
       displayName: 'Run gulp tasks'
+      inputs:
+        gulpFile: 'gulpfile.js'
+        gulpjs: node_modules/gulp/bin/gulp.js
 
     - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
       displayName: 'Write build info'
@@ -78,6 +82,7 @@ stages:
   jobs:
   - deployment: Deploy
     pool:
+      name: default
       vmImage: 'ubuntu-20.04'
     environment: dev
     variables:

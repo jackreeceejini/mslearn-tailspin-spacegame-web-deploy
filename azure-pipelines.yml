@@ -40,6 +40,19 @@ stages:
 =======
 - task: gulp@1
   displayName: 'Run gulp tasks'
+<<<<<<< HEAD
+=======
+  inputs:
+   gulpFile: 'gulpfile.js'
+   gulpjs: node_modules/gulp/bin/gulp.js
+
+- script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+  displayName: 'Write build info'
+  workingDirectory: $(wwwrootDir)
+
+- task: DotNetCoreCLI@2
+  displayName: 'Restore project dependencies'
+>>>>>>> 3f5930b388c3defcbd5f48742a9f1f5b2ca0d71a
   inputs:
    gulpFile: 'gulpfile.js'
    gulpjs: node_modules/gulp/bin/gulp.js

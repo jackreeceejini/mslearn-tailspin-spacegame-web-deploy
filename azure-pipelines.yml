@@ -3,6 +3,7 @@ trigger:
 
 variables:
   buildConfiguration: 'Release'
+  dotnetSdkVersion: '5.x'
 
 stages:
 - stage: 'Build'
@@ -11,6 +12,7 @@ stages:
   - job: 'Build'
     displayName: 'Build job'
     pool:
+      name: default
       vmImage: 'ubuntu-20.04'
       demands:
       - npm
@@ -35,6 +37,9 @@ stages:
 
     - task: gulp@1
       displayName: 'Run gulp tasks'
+      inputs:
+        gulpFile: 'gulpfile.js'
+        gulpjs: node_modules/gulp/bin/gulp.js
 
     - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
       displayName: 'Write build info'
@@ -57,7 +62,7 @@ stages:
       displayName: 'Publish the project - $(buildConfiguration)'
       inputs:
         command: 'publish'
-        projects: '**/*.csproj'
+        projects: '$(System.DefaultWorkingDirectory)/**/Tailspin.SpaceGame.Web.csproj' 
         publishWebProjects: false
         arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
         zipAfterPublish: true
@@ -71,6 +76,7 @@ stages:
   jobs:
   - deployment: Deploy
     pool:
+      name: default 
       vmImage: 'ubuntu-20.04'
     environment: dev
     variables:
@@ -94,6 +100,7 @@ stages:
   jobs:
   - deployment: Deploy
     pool:
+      name: default 
       vmImage: 'ubuntu-20.04'
     environment: test
     variables:
@@ -110,6 +117,32 @@ stages:
               azureSubscription: 'Resource Manager - Tailspin - Space Game'
               appName: '$(WebAppNameTest)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+  - job: RunUITests
+    dependsOn: Deploy
+    displayName: 'Run UI tests'
+    pool:
+      name: default 
+      vmImage: 'windows-2019'
+    variables:
+    - group: 'Release'
+    steps: 
+    - task: UseDotNet@2
+      displayName: 'Use .NET SDK $(dotnetSdkVersion)'
+      inputs:
+        version: '$(dotnetSdkVersion)'
+    - task: DotNetCoreCLI@2
+      displayName: 'Build the project - $(buildConfiguration)'
+      inputs:
+        command: 'build'
+        arguments: '--configuration $(buildConfiguration)'
+        projects: '$(System.DefaultWorkingDirectory)/**/*UITests.csproj'
+    - task: DotNetCoreCLI@2
+      displayName: 'Run unit tests - $(buildConfiguration)'
+      inputs:
+        command: 'test'
+        arguments: '--no-build --configuration $(buildConfiguration)'
+        publishTestResults: true
+        projects: '$(System.DefaultWorkingDirectory)/**/*UITests.csproj'
 
 - stage: 'Staging'
   displayName: 'Deploy to the staging environment'
@@ -117,6 +150,7 @@ stages:
   jobs:
   - deployment: Deploy
     pool:
+      name: default 
       vmImage: 'ubuntu-20.04'
     environment: staging
     variables:

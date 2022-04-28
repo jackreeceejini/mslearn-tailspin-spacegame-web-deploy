@@ -11,6 +11,7 @@ stages:
   - job: 'Build'
     displayName: 'Build job'
     pool:
+      name: default
       vmImage: 'ubuntu-20.04'
       demands:
       - npm
@@ -35,6 +36,11 @@ stages:
 
     - task: gulp@1
       displayName: 'Run gulp tasks'
+      - task: gulp@1
+        inputs:
+        gulpFile: 'gulpfile.js'
+        gulpjs: node_modules/gulp/bin/gulp.js
+
 
     - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
       displayName: 'Write build info'
@@ -71,6 +77,7 @@ stages:
   jobs:
   - deployment: Deploy
     pool:
+      name: default 
       vmImage: 'ubuntu-20.04'
     environment: dev
     variables:
@@ -94,6 +101,7 @@ stages:
   jobs:
   - deployment: Deploy
     pool:
+      name: default 
       vmImage: 'ubuntu-20.04'
     environment: test
     variables:
@@ -117,6 +125,7 @@ stages:
   jobs:
   - deployment: Deploy
     pool:
+      name: default 
       vmImage: 'ubuntu-20.04'
     environment: staging
     variables:
@@ -133,3 +142,27 @@ stages:
               azureSubscription: 'Resource Manager - Tailspin - Space Game'
               appName: '$(WebAppNameStaging)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+  - job: RunLoadTests
+    dependsOn: Deploy
+    displayName: 'Run load tests'
+    pool:
+      name: default 
+      vmImage: 'ubuntu-20.04'
+    variables:
+    - group: Release
+    steps:
+    - script: |
+        wget -c ftp.ps.pl/pub/apache/jmeter/binaries/apache-jmeter-$(jmeterVersion).tgz
+        tar -xzf apache-jmeter-$(jmeterVersion).tgz
+      displayName: 'Install Apache JMeter'
+    - script: apache-jmeter-$(jmeterVersion)/bin/./jmeter -n -t LoadTest.jmx -o Results.xml -Jhostname=$(STAGING_HOSTNAME)
+      displayName: 'Run Load tests'
+    - script: |
+        sudo apt-get update
+        sudo apt-get install xsltproc
+        xsltproc JMeter2JUnit.xsl Results.xml > JUnit.xml
+      displayName: 'Transform JMeter output to JUnit'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: JUnit.xml
